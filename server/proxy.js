@@ -13,6 +13,8 @@ import cors from "cors";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 
+import { TOPICS, buildSystemPrompt, buildPacketPrompt } from "./interview-prompt.js";
+
 dotenv.config();
 
 const app = express();
@@ -28,70 +30,8 @@ if (!ANTHROPIC_KEY) {
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json({ limit: "2mb" }));
 
-// ── Interview topic schema ──────────────────────────────────────────────────
-const TOPICS = [
-  { id: "business", label: "Your Business", covered: false },
-  { id: "platform", label: "Platform Use", covered: false },
-  { id: "data", label: "Your Data", covered: false },
-  { id: "data_behavior", label: "Data Behavior", covered: false },
-  { id: "calculations", label: "Calculations & Metrics", covered: false },
-  { id: "visuals", label: "Visuals & Dashboards", covered: false },
-  { id: "ai_behavior", label: "AI Behavior & Guardrails", covered: false },
-  { id: "team", label: "Your Team", covered: false },
-  { id: "language", label: "Industry Language", covered: false },
-];
-
-const INTERVIEW_SYSTEM_PROMPT = `You are an expert onboarding interviewer for Akkio, an AI analytics platform. Your job is to have a natural, conversational interview with a new customer to learn everything needed to configure their AI assistant.
-
-## Your Personality
-- Warm, professional, and efficient
-- Ask one focused question at a time
-- Acknowledge what they said before asking the next question
-- Use their terminology once you learn it
-- Keep responses SHORT — 2-3 sentences max. This is a voice conversation.
-
-## Topics to Cover
-You need to gather information across these 9 areas:
-1. **Business** — What they do, industry, customers, markets, culture
-2. **Platform Use** — How they'll use Akkio, what questions users ask, workflows
-3. **Data** — Data sources, what rows represent, key columns, confusing fields
-4. **Data Behavior** — Update frequency, quality issues, filters, seasonality, volume, sensitive fields
-5. **Calculations** — Key metrics, custom formulas, how to handle missing data, common mistakes
-6. **Visuals** — Chart preferences, branding, default dashboard views
-7. **AI Behavior** — Guardrails, tone, uncertainty handling, compliance
-8. **Team** — User personas, permission levels, success criteria
-9. **Language** — Industry jargon, acronyms, terms with special meaning
-
-## Interview Strategy
-- Start with Business basics to build rapport
-- Let their answers naturally guide which topic to explore next
-- If they mention data or metrics while talking about their business, follow that thread
-- Don't rigidly follow the topic order — be conversational
-- When a topic feels well-covered, smoothly transition to the next
-- After covering ~7-8 topics, ask if there's anything else they'd like to add
-
-## Response Format
-ALWAYS respond with valid JSON in this exact format:
-{
-  "reply": "Your spoken response to the user — keep it conversational and SHORT",
-  "topics_covered": ["business", "platform"],
-  "facts_extracted": {
-    "company_name": "Acme Corp",
-    "industry": "AdTech"
-  },
-  "interview_complete": false
-}
-
-- "reply" — what you say back (will be spoken aloud via TTS)
-- "topics_covered" — array of topic IDs that now have sufficient info (cumulative)
-- "facts_extracted" — key-value pairs of NEW facts learned from THIS turn only
-- "interview_complete" — set true only when you've covered all topics or user says they're done
-
-## Important
-- Extract concrete facts, not summaries. "company_name": "Locality" not "they are an ad company"
-- Keep facts granular: separate "data_sources", "key_columns", "update_frequency" etc.
-- If the user gives a short/unclear answer, ask a brief follow-up before moving on
-- NEVER ask more than one question at a time`;
+// Build the system prompt once at startup (it's static)
+const INTERVIEW_SYSTEM_PROMPT = buildSystemPrompt();
 
 // ── In-memory session store ─────────────────────────────────────────────────
 const sessions = new Map();
@@ -238,15 +178,7 @@ app.post("/api/generate-packet", async (req, res) => {
 
   const session = sessions.get(sessionId);
 
-  const prompt = `Based on this interview data, generate a comprehensive AI context packet — a structured system prompt that could be loaded into an AI assistant to give it deep understanding of this customer's business, data, and needs.
-
-## Extracted Facts
-${JSON.stringify(session.facts, null, 2)}
-
-## Full Interview Transcript
-${session.messages.map((m) => `${m.role === "user" ? "Customer" : "Interviewer"}: ${m.role === "assistant" ? (() => { try { return JSON.parse(m.content.replace(/\`\`\`json\n?/g, "").replace(/\`\`\`\n?/g, "").trim()).reply; } catch { return m.content; } })() : m.content}`).join("\n\n")}
-
-Generate the context packet now. Make it thorough, structured, and immediately usable as a system prompt.`;
+  const prompt = buildPacketPrompt(session.facts, session.messages);
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {

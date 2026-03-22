@@ -3,17 +3,17 @@ import { useState, useRef, useEffect, useCallback } from "react";
 // ── Generate a unique session ID ────────────────────────────────────────────
 const SESSION_ID = crypto.randomUUID();
 
-// ── Topic definitions ───────────────────────────────────────────────────────
+// ── Topic definitions (mirrors server/interview-prompt.js) ──────────────────
 const TOPICS = [
-  { id: "business", label: "Business", icon: "🏢" },
-  { id: "platform", label: "Platform", icon: "⚡" },
-  { id: "data", label: "Data", icon: "📊" },
-  { id: "data_behavior", label: "Behavior", icon: "🔄" },
-  { id: "calculations", label: "Metrics", icon: "📐" },
-  { id: "visuals", label: "Visuals", icon: "📈" },
-  { id: "ai_behavior", label: "AI Rules", icon: "🤖" },
-  { id: "team", label: "Team", icon: "👥" },
-  { id: "language", label: "Language", icon: "💬" },
+  { id: "business", label: "Business" },
+  { id: "platform", label: "Platform" },
+  { id: "data", label: "Data" },
+  { id: "data_behavior", label: "Behavior" },
+  { id: "calculations", label: "Metrics" },
+  { id: "visuals", label: "Visuals" },
+  { id: "ai_behavior", label: "AI Rules" },
+  { id: "team", label: "Team" },
+  { id: "language", label: "Language" },
 ];
 
 // ── Styles ──────────────────────────────────────────────────────────────────
@@ -91,8 +91,6 @@ const css = `
     color: #00C4A0;
     border-color: rgba(0,196,160,0.3);
   }
-  .topic-pill .icon { font-size: 12px; }
-
   /* ── Messages area ── */
   .messages {
     flex: 1;
@@ -691,8 +689,7 @@ export default function App() {
       <div className="topics-bar">
         {TOPICS.map((t) => (
           <div key={t.id} className={`topic-pill${topicsCovered.includes(t.id) ? " covered" : ""}`}>
-            <span className="icon">{topicsCovered.includes(t.id) ? "✓" : t.icon}</span>
-            {t.label}
+            {topicsCovered.includes(t.id) ? "✓" : "○"} {t.label}
           </div>
         ))}
       </div>

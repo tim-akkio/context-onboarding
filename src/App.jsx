@@ -645,21 +645,21 @@ export default function App() {
           <div className="welcome-badge">Akkio Voice Onboarding</div>
           <h1 className="welcome-title">Let's set up your AI assistant</h1>
           <p className="welcome-sub">
-            We run two short interviews — one for business context, one for data specifics.
-            Pick the one that matches your role.
+            We're going to have a quick chat to teach your AI assistant about your business and data.
+            It's easy — just talk like you normally would. Pick the interview that fits your role.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 360 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 380 }}>
             <button className="btn-start" onClick={() => startInterview("executive")} style={{ background: "linear-gradient(135deg, #1860DC, #3B82F6)" }}>
-              Business & Strategy (~5 min)
+              I'm on the business side (~5 min)
             </button>
-            <div style={{ fontSize: 12, color: "#8B9BB4", textAlign: "center", lineHeight: 1.4 }}>
-              For leaders and managers — goals, users, guardrails, terminology
+            <div style={{ fontSize: 13, color: "#8B9BB4", textAlign: "center", lineHeight: 1.5, padding: "0 12px" }}>
+              We'll talk about your company, your team, what you want the AI to do, and any rules it should follow. No technical questions.
             </div>
             <button className="btn-start" onClick={() => startInterview("technical")} style={{ background: "linear-gradient(135deg, #00C4A0, #059669)", marginTop: 8 }}>
-              Data & Technical (~7 min)
+              I'm on the data side (~7 min)
             </button>
-            <div style={{ fontSize: 12, color: "#8B9BB4", textAlign: "center", lineHeight: 1.4 }}>
-              For analysts and engineers — schemas, columns, calculations, edge cases
+            <div style={{ fontSize: 13, color: "#8B9BB4", textAlign: "center", lineHeight: 1.5, padding: "0 12px" }}>
+              We'll go through your tables, columns, calculations, and all the gotchas that make the difference between a right answer and a wrong one.
             </div>
           </div>
         </div>

@@ -6,10 +6,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Proxy /api calls to the local Express server
       "/api": {
         target: "http://localhost:3001",
         changeOrigin: true,
+      },
+      "/ws": {
+        target: "ws://localhost:3001",
+        ws: true,
       },
     },
   },

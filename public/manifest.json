@@ -1,0 +1,9 @@
+{
+  "name": "Akkio Voice Onboarding",
+  "short_name": "Akkio Voice",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0F1E",
+  "theme_color": "#0A0F1E",
+  "description": "Voice-first AI onboarding interview"
+}

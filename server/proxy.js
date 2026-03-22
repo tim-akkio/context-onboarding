@@ -15,6 +15,12 @@ import { WebSocketServer, WebSocket } from "ws";
 
 import { TOPICS, buildSystemPrompt, buildPacketPrompt } from "./interview-prompt.js";
 
+// Build both system prompts at startup (they're static)
+const SYSTEM_PROMPTS = {
+  executive: buildSystemPrompt("executive"),
+  technical: buildSystemPrompt("technical"),
+};
+
 dotenv.config();
 
 const app = express();
@@ -30,8 +36,6 @@ if (!ANTHROPIC_KEY) {
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json({ limit: "2mb" }));
 
-// Build the system prompt once at startup (it's static)
-const INTERVIEW_SYSTEM_PROMPT = buildSystemPrompt();
 
 // ── In-memory session store ─────────────────────────────────────────────────
 const sessions = new Map();
@@ -60,10 +64,12 @@ app.get("/api/health", (req, res) => {
 
 // ── Interview chat endpoint (streaming) ─────────────────────────────────────
 app.post("/api/interview", async (req, res) => {
-  const { sessionId, userMessage } = req.body;
+  const { sessionId, userMessage, track = "executive" } = req.body;
   if (!sessionId || !userMessage) {
     return res.status(400).json({ error: "sessionId and userMessage required" });
   }
+
+  const systemPrompt = SYSTEM_PROMPTS[track] || SYSTEM_PROMPTS.executive;
 
   const session = getOrCreateSession(sessionId);
   session.messages.push({ role: "user", content: userMessage });
@@ -84,7 +90,7 @@ app.post("/api/interview", async (req, res) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
-        system: INTERVIEW_SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: session.messages,
         stream: true,
       }),

@@ -3,18 +3,29 @@ import { useState, useRef, useEffect, useCallback } from "react";
 // ── Generate a unique session ID ────────────────────────────────────────────
 const SESSION_ID = crypto.randomUUID();
 
-// ── Topic definitions (mirrors server/interview-prompt.js) ──────────────────
-const TOPICS = [
-  { id: "business", label: "Business" },
-  { id: "platform", label: "Platform" },
-  { id: "data", label: "Data" },
-  { id: "data_behavior", label: "Behavior" },
-  { id: "calculations", label: "Metrics" },
-  { id: "visuals", label: "Visuals" },
-  { id: "ai_behavior", label: "AI Rules" },
-  { id: "team", label: "Team" },
-  { id: "language", label: "Language" },
-];
+// ── Topic definitions per track (mirrors server/interview-prompt.js) ─────────
+const TOPICS = {
+  executive: [
+    { id: "business", label: "Business" },
+    { id: "strategy", label: "Strategy" },
+    { id: "users", label: "Users" },
+    { id: "questions", label: "Questions" },
+    { id: "guardrails", label: "Guardrails" },
+    { id: "success", label: "Success" },
+    { id: "language_exec", label: "Language" },
+  ],
+  technical: [
+    { id: "data_sources", label: "Sources" },
+    { id: "schema", label: "Schema" },
+    { id: "data_quality", label: "Quality" },
+    { id: "metrics", label: "Metrics" },
+    { id: "query_patterns", label: "Queries" },
+    { id: "edge_cases", label: "Pitfalls" },
+    { id: "sensitive_data", label: "Sensitive" },
+    { id: "visuals", label: "Visuals" },
+    { id: "language_tech", label: "Terms" },
+  ],
+};
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 const css = `
@@ -463,6 +474,7 @@ function useDeepgramSTT({ onTranscript, onUtteranceEnd, onInterimTranscript }) {
 
 // ── App Component ───────────────────────────────────────────────────────────
 export default function App() {
+  const [track, setTrack] = useState(null); // "executive" | "technical"
   const [started, setStarted] = useState(false);
   const [messages, setMessages] = useState([]);
   const [textInput, setTextInput] = useState("");
@@ -492,7 +504,7 @@ export default function App() {
       const res = await fetch("/api/interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: SESSION_ID, userMessage: text.trim() }),
+        body: JSON.stringify({ sessionId: SESSION_ID, userMessage: text.trim(), track }),
       });
 
       const reader = res.body.getReader();
@@ -611,14 +623,19 @@ export default function App() {
   };
 
   // ── Start interview ────────────────────────────────────────────────────────
-  const startInterview = () => {
+  const startInterview = (selectedTrack) => {
+    setTrack(selectedTrack);
     setStarted(true);
-    sendMessage("Hi, I'm ready to get started with the onboarding interview.");
+    // Use setTimeout so track state is set before sendMessage reads it
+    setTimeout(() => {
+      sendMessage("Hi, I'm ready to get started.");
+    }, 0);
   };
 
   const livePreview = [...finalizedChunks, interimText].filter(Boolean).join(" ");
+  const activeTopics = track ? (TOPICS[track] || []) : [];
 
-  // ── RENDER: Welcome ────────────────────────────────────────────────────────
+  // ── RENDER: Welcome / Track Selection ──────────────────────────────────────
   if (!started) {
     return (
       <div className="app">
@@ -628,12 +645,23 @@ export default function App() {
           <div className="welcome-badge">Akkio Voice Onboarding</div>
           <h1 className="welcome-title">Let's set up your AI assistant</h1>
           <p className="welcome-sub">
-            We'll have a quick conversation to learn about your business, data, and team.
-            Just talk naturally — like a phone call. Takes about 5-10 minutes.
+            We run two short interviews — one for business context, one for data specifics.
+            Pick the one that matches your role.
           </p>
-          <button className="btn-start" onClick={startInterview}>
-            Start Interview
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 360 }}>
+            <button className="btn-start" onClick={() => startInterview("executive")} style={{ background: "linear-gradient(135deg, #1860DC, #3B82F6)" }}>
+              Business & Strategy (~5 min)
+            </button>
+            <div style={{ fontSize: 12, color: "#8B9BB4", textAlign: "center", lineHeight: 1.4 }}>
+              For leaders and managers — goals, users, guardrails, terminology
+            </div>
+            <button className="btn-start" onClick={() => startInterview("technical")} style={{ background: "linear-gradient(135deg, #00C4A0, #059669)", marginTop: 8 }}>
+              Data & Technical (~7 min)
+            </button>
+            <div style={{ fontSize: 12, color: "#8B9BB4", textAlign: "center", lineHeight: 1.4 }}>
+              For analysts and engineers — schemas, columns, calculations, edge cases
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -646,13 +674,13 @@ export default function App() {
         <style>{css}</style>
         <div className="header">
           <span className="header-brand">Akkio Voice</span>
-          <span className="header-status">{topicsCovered.length}/{TOPICS.length} covered</span>
+          <span className="header-status">{topicsCovered.length}/{activeTopics.length} covered</span>
         </div>
         <div className="complete-overlay">
           <div className="complete-icon">✅</div>
           <h2 className="complete-title">Interview Complete</h2>
           <p className="complete-sub">
-            Great conversation! We covered {topicsCovered.length} of {TOPICS.length} topics.
+            Great conversation! We covered {topicsCovered.length} of {activeTopics.length} topics.
             Ready to generate your AI context packet.
           </p>
           <button className="btn-generate" onClick={generatePacket} disabled={generatingPacket}>
@@ -683,11 +711,11 @@ export default function App() {
 
       <div className="header">
         <span className="header-brand">Akkio Voice</span>
-        <span className="header-status">{topicsCovered.length}/{TOPICS.length} topics</span>
+        <span className="header-status">{topicsCovered.length}/{activeTopics.length} topics</span>
       </div>
 
       <div className="topics-bar">
-        {TOPICS.map((t) => (
+        {activeTopics.map((t) => (
           <div key={t.id} className={`topic-pill${topicsCovered.includes(t.id) ? " covered" : ""}`}>
             {topicsCovered.includes(t.id) ? "✓" : "○"} {t.label}
           </div>
